@@ -2,6 +2,12 @@
 
 import sys
 
+HLT = 0b00000001
+LDI = 0b10000010
+PRN = 0b01000111
+MUL = 0b10100010
+ADD = 0b10100000
+
 class CPU:
     """Main CPU class."""
 
@@ -10,6 +16,14 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = pc
+        self.inc_size = 0
+        self.running = True
+
+        self.branchtable = {}
+        self.branchtable[HLT] = self.HLT
+        self.branchtable[LDI] = self.LDI #'LDI'
+        self.branchtable[PRN] = self.PRN
+        self.branchtable[MUL] = self.alu
 
     def ram_read(self, mar):
         try:
@@ -67,12 +81,13 @@ class CPU:
             sys.exit(2)
 
 
-    def alu(self, op, reg_a, reg_b):
+    def alu(self, reg_a, reg_b):
+        # print(op, reg_a, reg_b)
         """ALU operations."""
 
-        if op == "ADD":
+        if self.ram[self.pc] == ADD:
             self.reg[reg_a] += self.reg[reg_b]
-        elif op == "MUL":
+        elif self.ram[self.pc] == MUL:
             self.reg[reg_a] *= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
@@ -99,34 +114,39 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        IR = self.reg[self.pc]
+        ir = self.reg[self.pc]
 
-        running = True
-
-        HLT = 0b00000001
-        LDI = 0b10000010
-        PRN = 0b01000111
-        MUL = 0b10100010
-        inc_size = 0
-
-        while running:
+        while self.running:
             cmd = self.ram[self.pc]
+
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
 
-            if cmd == HLT:
-                running = False
-            elif cmd == LDI:
-                self.LDI(operand_a, operand_b)
-                inc_size = 3
-            elif cmd == PRN:
-                ldi = operand_a
-                print(self.reg[ldi])
-                inc_size = 2
-            elif cmd == MUL:
-                self.alu('MUL', operand_a, operand_b)
+            self.branchtable[cmd](operand_a, operand_b)
+            
+            # if cmd == HLT:
+            #     running = False
+            # elif cmd == LDI:
+                # self.LDI(operand_a, operand_b)
 
-            self.pc += inc_size
+                # inc_size = 3
+            # elif cmd == PRN:
+            #     ldi = operand_a
+            #     print(self.reg[ldi])
+            #     self.inc_size = 2
+            # elif cmd == MUL:
+            #     self.alu('MUL', operand_a, operand_b)
+            # self.branchtable[cmd](MUL, operand_a, operand_b)
+            
+            self.pc += self.inc_size
 
     def LDI(self, register, immediate):
         self.reg[int(register)] = immediate
+        self.inc_size = 3
+
+    def PRN(self, register, _):
+        print(self.reg[int(register)])
+        self.inc_size = 2
+
+    def HLT(self, register, _):
+        self.running = False
