@@ -7,6 +7,8 @@ LDI = 0b10000010
 PRN = 0b01000111
 MUL = 0b10100010
 ADD = 0b10100000
+POP = 0b01000110
+PUSH = 0b01000101
 
 class CPU:
     """Main CPU class."""
@@ -18,12 +20,15 @@ class CPU:
         self.pc = pc
         self.inc_size = 0
         self.running = True
+        self.sp = 7
 
         self.branchtable = {}
         self.branchtable[HLT] = self.HLT
         self.branchtable[LDI] = self.LDI #'LDI'
         self.branchtable[PRN] = self.PRN
         self.branchtable[MUL] = self.alu
+        self.branchtable[POP] = self.POP
+        self.branchtable[PUSH] = self.PUSH
 
     def ram_read(self, mar):
         try:
@@ -150,3 +155,17 @@ class CPU:
 
     def HLT(self, register, _):
         self.running = False
+
+    def PUSH(self, register, _):
+        val = self.reg[int(register)]
+
+        self.reg[self.sp] -= 1
+        self.ram_write(val, self.reg[self.sp])
+        self.inc_size = 2
+
+    def POP(self, register, _):
+        val = self.ram_read(self.reg[self.sp])
+
+        self.reg[register] = val
+        self.reg[self.sp] += 1
+        self.inc_size = 2
