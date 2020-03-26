@@ -9,6 +9,8 @@ MUL = 0b10100010
 ADD = 0b10100000
 POP = 0b01000110
 PUSH = 0b01000101
+CALL = 0b01010000
+RET = 0b00010001
 
 class CPU:
     """Main CPU class."""
@@ -21,6 +23,7 @@ class CPU:
         self.inc_size = 0
         self.running = True
         self.sp = 7
+        self.op_pc = False
 
         self.branchtable = {}
         self.branchtable[HLT] = self.HLT
@@ -29,6 +32,9 @@ class CPU:
         self.branchtable[MUL] = self.alu
         self.branchtable[POP] = self.POP
         self.branchtable[PUSH] = self.PUSH
+        self.branchtable[CALL] = self.CALL
+        self.branchtable[RET] = self.RET
+        self.branchtable[ADD] = self.alu
 
     def ram_read(self, mar):
         try:
@@ -48,20 +54,6 @@ class CPU:
         address = 0
 
         # For now, we've just hardcoded a program:
-
-        # program = [
-        #     # From print8.ls8
-        #     0b10000010, # LDI R0,8
-        #     0b00000000,
-        #     0b00001000,
-        #     0b01000111, # PRN R0
-        #     0b00000000,
-        #     0b00000001, # HLT
-        # ]
-
-        # for instruction in program:
-        #     self.ram[address] = instruction
-        #     address += 1
 
         if len(sys.argv) != 2:
             print("another error")
@@ -97,6 +89,8 @@ class CPU:
         else:
             raise Exception("Unsupported ALU operation")
 
+        self.op_pc = False
+
     def trace(self):
         """
         Handy function to print out the CPU state. You might want to call this
@@ -129,32 +123,22 @@ class CPU:
 
             self.branchtable[cmd](operand_a, operand_b)
             
-            # if cmd == HLT:
-            #     running = False
-            # elif cmd == LDI:
-                # self.LDI(operand_a, operand_b)
-
-                # inc_size = 3
-            # elif cmd == PRN:
-            #     ldi = operand_a
-            #     print(self.reg[ldi])
-            #     self.inc_size = 2
-            # elif cmd == MUL:
-            #     self.alu('MUL', operand_a, operand_b)
-            # self.branchtable[cmd](MUL, operand_a, operand_b)
-            
-            self.pc += self.inc_size
+            if not self.op_pc:
+                self.pc += self.inc_size
 
     def LDI(self, register, immediate):
         self.reg[int(register)] = immediate
         self.inc_size = 3
+        self.op_pc = False
 
     def PRN(self, register, _):
         print(self.reg[int(register)])
         self.inc_size = 2
+        self.op_pc = False
 
     def HLT(self, register, _):
         self.running = False
+        self.op_pc = False
 
     def PUSH(self, register, _):
         val = self.reg[int(register)]
@@ -162,6 +146,7 @@ class CPU:
         self.reg[self.sp] -= 1
         self.ram_write(val, self.reg[self.sp])
         self.inc_size = 2
+        self.op_pc = False
 
     def POP(self, register, _):
         val = self.ram_read(self.reg[self.sp])
@@ -169,3 +154,16 @@ class CPU:
         self.reg[register] = val
         self.reg[self.sp] += 1
         self.inc_size = 2
+        self.op_pc = False
+
+    def CALL(self, register, _):
+        self.reg[self.sp] -= 1
+        self.ram_write(self.pc + 2, self.reg[self.sp])
+
+        self.pc = self.reg[register]
+        self.op_pc = True
+
+    def RET(self, register, _):
+        self.pc = self.ram_read(self.reg[self.sp])
+        self.reg[self.sp] += 1
+        self.op_pc = True
