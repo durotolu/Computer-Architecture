@@ -122,7 +122,7 @@ class CPU:
         elif self.ram[self.pc] == XOR:
             self.reg[reg_a] ^= self.reg[reg_b]
         elif self.ram[self.pc] == NOT:
-            self.reg[reg_a] ~= self.reg[reg_b]
+            self.reg[reg_a] = ~self.reg[reg_a]
         elif self.ram[self.pc] == SHL:
             self.reg[reg_a] <<= self.reg[reg_b]
         elif self.ram[self.pc] == SHR:
