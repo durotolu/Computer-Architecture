@@ -15,6 +15,13 @@ CMP = 0b10100111
 JMP = 0b01010100
 JEQ = 0b01010101
 JNE = 0b01010110
+AND = 10101000
+OR = 0b10101010
+XOR = 0b10101011
+NOR = 0b01101001
+SHL = 0b10101100
+SHR = 0b10101101
+MOD = 0b10100100
 
 class CPU:
     """Main CPU class."""
@@ -43,6 +50,13 @@ class CPU:
         self.branchtable[JMP] = self.JMP
         self.branchtable[JEQ] = self.JEQ
         self.branchtable[JNE] = self.JNE
+        self.branchtable[AND] = self.alu
+        self.branchtable[OR] = self.alu
+        self.branchtable[XOR] = self.alu
+        self.branchtable[NOR] = self.alu
+        self.branchtable[SHL] = self.alu
+        self.branchtable[SHR] = self.alu
+        self.branchtable[MOD] = self.alu
 
     def ram_read(self, mar):
         try:
@@ -101,6 +115,25 @@ class CPU:
                 self.reg[-2] = 1
             if self.reg[reg_a] < self.reg[reg_b]:
                 self.reg[-3] = 1
+        elif self.ram[self.pc] == AND:
+            self.reg[reg_a] &= self.reg[reg_b]
+        elif self.ram[self.pc] == OR:
+            self.reg[reg_a] |= self.reg[reg_b]
+        elif self.ram[self.pc] == XOR:
+            self.reg[reg_a] ^= self.reg[reg_b]
+        elif self.ram[self.pc] == NOT:
+            self.reg[reg_a] ~= self.reg[reg_b]
+        elif self.ram[self.pc] == SHL:
+            self.reg[reg_a] <<= self.reg[reg_b]
+        elif self.ram[self.pc] == SHR:
+            self.reg[reg_a] >>= self.reg[reg_b]
+        elif self.ram[self.pc] == MOD:
+            if self.reg[reg_b] == 0:
+                print(f'value cannot be divided by 0 on MOD: {MOD}')
+                self.HLT()
+            self.reg[reg_a] //= self.reg[reg_b]
+        elif self.ram[self.pc] == ADDI:
+            self.reg[reg_a] += reg_b
         else:
             raise Exception("Unsupported ALU operation")
 
