@@ -11,6 +11,10 @@ POP = 0b01000110
 PUSH = 0b01000101
 CALL = 0b01010000
 RET = 0b00010001
+CMP = 0b10100111
+JMP = 0b01010100
+JEQ = 0b01010101
+JNE = 0b01010110
 
 class CPU:
     """Main CPU class."""
@@ -35,6 +39,10 @@ class CPU:
         self.branchtable[CALL] = self.CALL
         self.branchtable[RET] = self.RET
         self.branchtable[ADD] = self.alu
+        self.branchtable[CMP] = self.alu
+        self.branchtable[JMP] = self.JMP
+        self.branchtable[JEQ] = self.JEQ
+        self.branchtable[JNE] = self.JNE
 
     def ram_read(self, mar):
         try:
@@ -86,9 +94,17 @@ class CPU:
             self.reg[reg_a] += self.reg[reg_b]
         elif self.ram[self.pc] == MUL:
             self.reg[reg_a] *= self.reg[reg_b]
+        elif self.ram[self.pc] == CMP:
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.reg[-1] = 1
+            if self.reg[reg_a] > self.reg[reg_b]:
+                self.reg[-2] = 1
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.reg[-3] = 1
         else:
             raise Exception("Unsupported ALU operation")
 
+        self.inc_size = 3
         self.op_pc = False
 
     def trace(self):
@@ -167,3 +183,23 @@ class CPU:
         self.pc = self.ram_read(self.reg[self.sp])
         self.reg[self.sp] += 1
         self.op_pc = True
+
+    def JMP(self, register, _):
+        self.pc = self.reg[register]
+        self.op_pc = True
+
+    def JEQ(self, register, _):
+        if self.reg[-1] == 1:
+            self.pc = self.reg[register]
+            self.op_pc = True
+        else:
+            self.inc_size = 2
+            self.op_pc = False
+
+    def JNE(self, register, _):
+        if self.reg[-1] == 0:
+            self.pc = self.reg[register]
+            self.op_pc = True
+        else:
+            self.inc_size = 2
+            self.op_pc = False
